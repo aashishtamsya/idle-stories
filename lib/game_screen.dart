@@ -56,7 +56,8 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
+class _GameScreenState extends State<GameScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   late final Timer _ticker;
   int _ticksSinceSave = 0;
   bool _showingComic = false;
@@ -68,6 +69,36 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   /// The product whose card is open.
   int _selected = 0;
 
+  /// Pinch zoom of the office, and the glide used when a zone is tapped.
+  final _zoom = TransformationController();
+  late final _zoomGlide = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 350),
+  );
+  Animation<Matrix4>? _zoomPath;
+  Size _viewport = Size.zero;
+
+  /// Glides the view onto a zone, or back out to the whole office.
+  void _zoomTo(String? id) {
+    var target = Matrix4.identity();
+    if (id != null) {
+      const k = 1.7;
+      final v = _viewport;
+      final h = v.width * 1170 / 1560;
+      final x = zoneSpot[id]!.dx * v.width;
+      final y = (v.height - h) / 2 + zoneSpot[id]!.dy * h;
+      final tx = (v.width / 2 - x * k).clamp(v.width * (1 - k), 0.0);
+      final ty = (v.height / 2 - y * k).clamp(v.height * (1 - k), 0.0);
+      target = Matrix4.identity()
+        ..translate(tx, ty)
+        ..scale(k);
+    }
+    _zoomPath = Matrix4Tween(begin: _zoom.value, end: target).animate(
+      CurvedAnimation(parent: _zoomGlide, curve: Curves.easeOut),
+    );
+    _zoomGlide.forward(from: 0);
+  }
+
   GameState get s => widget.state;
   String get lang => s.language;
   String money(double v) => formatMoney(v, s.region!, lang);
@@ -76,6 +107,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _zoomGlide.addListener(() => _zoom.value = _zoomPath!.value);
     _ticker = Timer.periodic(const Duration(milliseconds: 100), _onTick);
     WidgetsBinding.instance.addPostFrameCallback((_) => _welcomeBack());
   }
@@ -84,6 +116,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _ticker.cancel();
+    _zoomGlide.dispose();
+    _zoom.dispose();
     super.dispose();
   }
 
@@ -292,7 +326,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           child: Column(
             children: [
               _hud(),
-              Expanded(child: Center(child: _office())),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    _viewport = box.biggest;
+                    return InteractiveViewer(
+                      transformationController: _zoom,
+                      minScale: 1,
+                      maxScale: 3,
+                      child: Center(child: _office()),
+                    );
+                  },
+                ),
+              ),
               _card(),
             ],
           ),
@@ -385,6 +431,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           behavior: HitTestBehavior.opaque,
           onTapUp: (tap) {
             final id = zoneAt(tap.localPosition, box.biggest);
+            _zoomTo(id);
             if (id == null) return;
             setState(() {
               _selected = _index(id);
@@ -596,7 +643,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     color: owned ? 'green' : 'amber',
                     height: 40,
                     onPressed: s.cash >= s.upgradeCost(i)
-                        ? () => setState(() => s.upgrade(i))
+                        ? () {
+                            setState(() => s.upgrade(i));
+                            _zoomTo(null);
+                          }
                         : null,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -624,7 +674,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       color: 'blue',
                       height: 32,
                       onPressed: s.cash >= s.managerCost(i)
-                          ? () => setState(() => s.hireManager(i))
+                          ? () {
+                              setState(() => s.hireManager(i));
+                              _zoomTo(null);
+                            }
                           : null,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
