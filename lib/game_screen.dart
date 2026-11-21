@@ -644,10 +644,7 @@ class _GameScreenState extends State<GameScreen>
                     color: owned ? 'green' : 'amber',
                     height: 40,
                     onPressed: s.cash >= s.upgradeCost(i)
-                        ? () {
-                            setState(() => s.upgrade(i));
-                            _zoomTo(null);
-                          }
+                        ? () => setState(() => s.upgrade(i))
                         : null,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -675,10 +672,7 @@ class _GameScreenState extends State<GameScreen>
                       color: 'blue',
                       height: 32,
                       onPressed: s.cash >= s.managerCost(i)
-                          ? () {
-                              setState(() => s.hireManager(i));
-                              _zoomTo(null);
-                            }
+                          ? () => setState(() => s.hireManager(i))
                           : null,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
