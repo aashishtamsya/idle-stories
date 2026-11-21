@@ -334,6 +334,7 @@ class _GameScreenState extends State<GameScreen>
                       transformationController: _zoom,
                       minScale: 1,
                       maxScale: 3,
+                      onInteractionStart: (_) => _zoomGlide.stop(),
                       child: Center(child: _office()),
                     );
                   },
