@@ -25,12 +25,14 @@ class ComicScreen extends StatefulWidget {
   final String comicId;
   final String language;
   final String? region;
+  final String? player;
   final VoidCallback onDone;
   const ComicScreen({
     super.key,
     required this.comicId,
     required this.language,
     required this.region,
+    required this.player,
     required this.onDone,
   });
 
@@ -112,7 +114,12 @@ class _ComicScreenState extends State<ComicScreen> {
                                 border: Border.all(color: Colors.black, width: 3),
                               ),
                               child: Text(
-                                trStory(widget.language, widget.region, captionKey),
+                                trStory(
+                                  widget.language,
+                                  widget.region,
+                                  captionKey,
+                                  player: widget.player,
+                                ),
                                 style: gameText(18, weight: 600, color: Colors.black),
                               ),
                             ),

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import 'names.dart';
 import 'strings.dart';
 import 'ui.dart';
 
@@ -257,6 +258,106 @@ class StorySelectScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Asks for the player's name. The player is the lead of the story they
+/// picked (the founder and CEO in the startup story).
+class NameScreen extends StatefulWidget {
+  final String language;
+  final String story;
+  final void Function(String name) onDone;
+  const NameScreen({
+    super.key,
+    required this.language,
+    required this.story,
+    required this.onDone,
+  });
+
+  @override
+  State<NameScreen> createState() => _NameScreenState();
+}
+
+class _NameScreenState extends State<NameScreen> {
+  final _name = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lang = widget.language;
+    final problem = nameProblem(_name.text);
+    void done() {
+      if (problem == null) widget.onDone(_name.text.trim());
+    }
+
+    return Scaffold(
+      body: GameBackground(
+        child: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                tr(lang, 'name_title'),
+                textAlign: TextAlign.center,
+                style: gameText(30, weight: 800, color: Colors.white, outline: true),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tr(lang, 'name_role_${widget.story}'),
+                textAlign: TextAlign.center,
+                style: gameText(15, weight: 600, color: navy),
+              ),
+              const SizedBox(height: 12),
+              GamePanel(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _name,
+                      autofocus: true,
+                      maxLength: 16,
+                      textAlign: TextAlign.center,
+                      textCapitalization: TextCapitalization.words,
+                      style: gameText(24, weight: 800),
+                      decoration: InputDecoration(
+                        hintText: tr(lang, 'name_hint'),
+                        hintStyle: gameText(24, weight: 600, color: lip),
+                        counterText: '',
+                        border: InputBorder.none,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) => done(),
+                    ),
+                    if (problem != null && _name.text.trim().isNotEmpty)
+                      Text(
+                        tr(lang, problem),
+                        textAlign: TextAlign.center,
+                        style: gameText(
+                          14,
+                          weight: 600,
+                          color: const Color(0xFFD64545),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              GameButton(
+                color: 'green',
+                height: 60,
+                onPressed: problem == null ? done : null,
+                child: Text(tr(lang, 'continue')),
+              ),
             ],
           ),
         ),

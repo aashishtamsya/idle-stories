@@ -30,7 +30,7 @@ const _strings = <String, Map<String, String>>{
     'intro_1':
         '{city}. A shared room, a second-hand laptop, and rent due in a week.',
     'intro_2':
-        'Your campus placement fell through. Your roommate {friend} shrugs: "Then build your own thing."',
+        'Your campus placement fell through. Your roommate {friend} shrugs: "Then build your own thing, {player}."',
     'intro_3':
         'Your first freelance gig lands: fix a local shop\'s website.',
     'intro_4': 'It is not much. But it is a start.',
@@ -53,7 +53,7 @@ const _strings = <String, Map<String, String>>{
     'friend_OTHER': 'Kabir',
     // Region versions of story lines ("key@REGION"), used before the plain key.
     'intro_2@US':
-        'Your first job ended in a round of layoffs. Your roommate {friend} shrugs: "Then build your own thing."',
+        'Your first job ended in a round of layoffs. Your roommate {friend} shrugs: "Then build your own thing, {player}."',
     'intro_3@US':
         'Your first freelance gig lands: fix a food truck\'s website.',
     'ch2_1@US':
@@ -61,13 +61,13 @@ const _strings = <String, Map<String, String>>{
     'ch2_3@US':
         'Across town, a well-funded rival laughs at your garage office. For now.',
     'intro_2@BR':
-        'The internship never turned into a job. Your roommate {friend} shrugs: "Then build your own thing."',
+        'The internship never turned into a job. Your roommate {friend} shrugs: "Then build your own thing, {player}."',
     'intro_3@BR':
         'Your first freelance gig lands: fix the neighbourhood bakery\'s website.',
     'ch2_1@BR':
         'The baker tells three friends. Suddenly you have more work than hours.',
     'intro_2@FR':
-        'Your short-term contract was not renewed. Your flatmate {friend} shrugs: "Then build your own thing."',
+        'Your short-term contract was not renewed. Your flatmate {friend} shrugs: "Then build your own thing, {player}."',
     'intro_3@FR':
         'Your first freelance gig lands: fix the corner bakery\'s website.',
     'ch2_1@FR':
@@ -97,6 +97,14 @@ const _strings = <String, Map<String, String>>{
     'reset_progress': 'Reset progress',
     'reset_confirm': 'This erases your progress and setup. Continue?',
     'cancel': 'Cancel',
+    'name_title': 'What is your name?',
+    'name_role_startup': 'You are the founder and CEO. The story is about you.',
+    'name_hint': 'Your name',
+    'name_short': 'Use at least 2 letters.',
+    'name_long': 'Use 16 letters or fewer.',
+    'name_chars': 'Use letters only.',
+    'name_rude': 'Please choose a different name.',
+    'player_default': 'boss',
     'unit_k': 'K',
     'unit_m': 'M',
     'unit_b': 'B',
@@ -132,7 +140,7 @@ const _strings = <String, Map<String, String>>{
     'intro_1':
         '{city}। एक साझा कमरा, एक पुराना लैपटॉप, और एक हफ़्ते में किराया देना है।',
     'intro_2':
-        'कैंपस प्लेसमेंट नहीं हुआ। रूममेट {friend} कंधे उचकाता है: "तो अपना कुछ बना।"',
+        'कैंपस प्लेसमेंट नहीं हुआ। रूममेट {friend} कंधे उचकाता है: "तो अपना कुछ बना, {player}।"',
     'intro_3': 'पहला फ़्रीलांस काम मिला: एक दुकान की वेबसाइट ठीक करनी है।',
     'intro_4': 'ज़्यादा नहीं है। पर शुरुआत तो है।',
     'ch2_1':
@@ -170,6 +178,14 @@ const _strings = <String, Map<String, String>>{
     'reset_progress': 'प्रगति मिटाएँ',
     'reset_confirm': 'इससे आपकी प्रगति और सेटअप मिट जाएगा। जारी रखें?',
     'cancel': 'रद्द करें',
+    'name_title': 'आपका नाम क्या है?',
+    'name_role_startup': 'आप फ़ाउंडर और सीईओ हैं। यह कहानी आपकी है।',
+    'name_hint': 'आपका नाम',
+    'name_short': 'कम से कम 2 अक्षर लिखें।',
+    'name_long': '16 या उससे कम अक्षर लिखें।',
+    'name_chars': 'केवल अक्षर लिखें।',
+    'name_rude': 'कृपया कोई दूसरा नाम चुनें।',
+    'player_default': 'बॉस',
     'unit_k': ' हज़ार',
     'unit_lakh': ' लाख',
     'unit_cr': ' करोड़',
@@ -206,7 +222,7 @@ const _strings = <String, Map<String, String>>{
     'intro_1':
         '{city}. Um quarto dividido, um notebook usado e o aluguel vence em uma semana.',
     'intro_2':
-        'O estágio não virou emprego. Seu colega de quarto {friend} dá de ombros: "Então cria o seu negócio."',
+        'O estágio não virou emprego. Seu colega de quarto {friend} dá de ombros: "Então cria o seu negócio, {player}."',
     'intro_3':
         'Chega o primeiro freela: arrumar o site da padaria do bairro.',
     'intro_4': 'Não é muito. Mas é um começo.',
@@ -242,6 +258,14 @@ const _strings = <String, Map<String, String>>{
     'reset_progress': 'Apagar progresso',
     'reset_confirm': 'Isso apaga seu progresso e sua configuração. Continuar?',
     'cancel': 'Cancelar',
+    'name_title': 'Qual é o seu nome?',
+    'name_role_startup': 'Você é quem fundou a empresa e é CEO. A história é sobre você.',
+    'name_hint': 'Seu nome',
+    'name_short': 'Use pelo menos 2 letras.',
+    'name_long': 'Use até 16 letras.',
+    'name_chars': 'Use apenas letras.',
+    'name_rude': 'Escolha outro nome, por favor.',
+    'player_default': 'chefe',
     'unit_k': ' mil',
     'unit_m': ' mi',
     'unit_b': ' bi',
@@ -278,7 +302,7 @@ const _strings = <String, Map<String, String>>{
     'intro_1':
         '{city}. Une colocation, un ordinateur d\'occasion et le loyer à payer dans une semaine.',
     'intro_2':
-        'Ton CDD n\'a pas été renouvelé. Ton colocataire {friend} hausse les épaules : « Alors lance ton propre projet. »',
+        'Ton CDD n\'a pas été renouvelé. Ton colocataire {friend} hausse les épaules : « Alors lance ton propre projet, {player}. »',
     'intro_3':
         'Ta première mission freelance arrive : réparer le site de la boulangerie du coin.',
     'intro_4': 'Ce n\'est pas grand-chose. Mais c\'est un début.',
@@ -314,6 +338,14 @@ const _strings = <String, Map<String, String>>{
     'reset_progress': 'Effacer la progression',
     'reset_confirm': 'Cela efface ta progression et tes réglages. Continuer ?',
     'cancel': 'Annuler',
+    'name_title': 'Comment t\'appelles-tu ?',
+    'name_role_startup': 'Tu as fondé la start-up et tu la diriges. Cette histoire est la tienne.',
+    'name_hint': 'Ton nom',
+    'name_short': 'Utilise au moins 2 lettres.',
+    'name_long': 'Utilise 16 lettres au maximum.',
+    'name_chars': 'Utilise uniquement des lettres.',
+    'name_rude': 'Choisis un autre nom, s\'il te plaît.',
+    'player_default': 'chef',
     'unit_k': ' k',
     'unit_m': ' M',
     'unit_b': ' Md',
@@ -326,8 +358,9 @@ String tr(String lang, String key) =>
 
 /// Story text for the player's region. Looks for a region version of the
 /// line ("key@REGION") in the player's language, then the plain line, then
-/// English, and fills the {city} and {friend} slots from the region's world.
-String trStory(String lang, String? region, String key) {
+/// English, and fills the {city} and {friend} slots from the region's world
+/// and {player} with the player's name.
+String trStory(String lang, String? region, String key, {String? player}) {
   final r = region ?? 'OTHER';
   final text =
       _strings[lang]?['$key@$r'] ??
@@ -336,5 +369,6 @@ String trStory(String lang, String? region, String key) {
       tr(lang, key);
   return text
       .replaceAll('{city}', tr(lang, 'city_$r'))
-      .replaceAll('{friend}', tr(lang, 'friend_$r'));
+      .replaceAll('{friend}', tr(lang, 'friend_$r'))
+      .replaceAll('{player}', player ?? tr(lang, 'player_default'));
 }

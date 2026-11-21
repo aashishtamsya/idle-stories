@@ -163,6 +163,7 @@ class _GameScreenState extends State<GameScreen>
             comicId: 'chapter2',
             language: lang,
             region: s.region,
+            player: s.playerName,
             onDone: () {
               s.comicsSeen.add('chapter2');
               _showingComic = false;

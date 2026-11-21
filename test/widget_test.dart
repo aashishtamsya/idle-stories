@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:idle_stories/strings.dart';
 import 'package:idle_stories/game.dart';
 import 'package:idle_stories/game_screen.dart';
+import 'package:idle_stories/names.dart';
 import 'dart:ui';
 
 void main() {
@@ -66,6 +67,7 @@ void main() {
       ..setupRegion = 'IN'
       ..setupLanguageStep = true
       ..story = 'startup'
+      ..playerName = 'Asha'
       ..cash = 500
       ..lastSeenMs = 42;
     s.comicsSeen.add('intro');
@@ -82,6 +84,7 @@ void main() {
     expect(trStory('pt', 'BR', 'intro_2'), contains('Rafael'));
     expect(trStory('hi', 'IN', 'intro_2'), contains('कबीर'));
     expect(trStory('en', null, 'ch2_2'), startsWith('Kabir'));
+    expect(trStory('en', 'IN', 'intro_2', player: 'Asha'), contains('Asha'));
     for (final lang in ['en', 'hi', 'pt', 'fr']) {
       for (final region in ['IN', 'US', 'BR', 'FR', 'OTHER']) {
         for (final key in ['intro_1', 'intro_2', 'ch2_2', 'story_startup_desc']) {
@@ -98,6 +101,21 @@ void main() {
       expect(zoneAt(Offset(spot.dx * 400, spot.dy * 300), size), id);
     }
     expect(zoneAt(const Offset(2, 298), size), isNull);
+  });
+
+  test('player names are checked', () {
+    for (final ok in ['Asha', 'Harshit', 'Shital', 'Hassan', 'Dikshit', 'Nigam',
+        'आशा', 'José', "D'Souza", 'Anne-Marie']) {
+      expect(nameProblem(ok), isNull, reason: ok);
+    }
+    expect(nameProblem(' a '), 'name_short');
+    expect(nameProblem('a' * 17), 'name_long');
+    expect(nameProblem('Asha99'), 'name_chars');
+    expect(nameProblem('Asha!'), 'name_chars');
+    for (final rude in ['Fuck', 'f u c k', 'Fuuuck', 'shit', 'Asss',
+        'Chutiya', 'चूतिया', 'Big Dick', 'Putain']) {
+      expect(nameProblem(rude), 'name_rude', reason: rude);
+    }
   });
 
   group('money formatting', () {

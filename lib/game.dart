@@ -42,6 +42,9 @@ class GameState {
   String? setupRegion;
   bool setupLanguageStep = false;
   String? story;
+
+  /// The player's name; the player is the lead of the story.
+  String? playerName;
   double cash = 0;
   double lifetime = 0;
   int lastSeenMs = 0;
@@ -132,6 +135,7 @@ class GameState {
     'setupRegion': setupRegion,
     'setupLanguageStep': setupLanguageStep,
     'story': story,
+    'playerName': playerName,
     'cash': cash,
     'lifetime': lifetime,
     'lastSeenMs': lastSeenMs,
@@ -149,6 +153,7 @@ class GameState {
       ..setupRegion = json['setupRegion'] as String?
       ..setupLanguageStep = json['setupLanguageStep'] as bool? ?? false
       ..story = json['story'] as String?
+      ..playerName = json['playerName'] as String?
       ..cash = (json['cash'] as num?)?.toDouble() ?? 0
       ..lifetime = (json['lifetime'] as num?)?.toDouble() ?? 0
       ..lastSeenMs = json['lastSeenMs'] as int? ?? 0;
