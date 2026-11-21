@@ -21,13 +21,30 @@ const startupProducts = [
 
 const maxOfflineSeconds = 8 * 60 * 60;
 
+/// Registering the company sets up the HR desk. Without it the team stays
+/// at [teamWithoutHr] people and no manager can be hired.
+const hrCost = 40.0;
+const teamWithoutHr = 3;
+
+/// Desks at each office size, and the cost of moving up to the next size.
+const deskSteps = [4, 8, 14, 22, 32];
+const officeCosts = [500.0, 20000.0, 500000.0, 15000000.0];
+
+/// Funding rounds: each one restarts the products and multiplies income.
+const maxRounds = 5;
+const roundBonus = 3;
+
 class ProductState {
   int level;
+
+  /// Staff hired on top of the first person; each one speeds up the runs.
+  int staff;
   bool automated;
   bool running;
   double progress;
   ProductState({
     this.level = 0,
+    this.staff = 0,
     this.automated = false,
     this.running = false,
     this.progress = 0,
@@ -47,6 +64,16 @@ class GameState {
   String? playerName;
   double cash = 0;
   double lifetime = 0;
+
+  /// The company is registered and has an HR desk.
+  bool hr = false;
+
+  /// Office size, an index into [deskSteps].
+  int office = 0;
+
+  /// Funding rounds raised, and the money earned since the last one.
+  int round = 0;
+  double roundEarned = 0;
   int lastSeenMs = 0;
   final Set<String> comicsSeen = {};
   final List<ProductState> items = [
@@ -63,14 +90,45 @@ class GameState {
       startupProducts[i].baseCost * (i == 0 ? 5 : 15);
 
   double incomePerCycle(int i) =>
-      startupProducts[i].baseIncome * items[i].level;
+      startupProducts[i].baseIncome * items[i].level * pow(roundBonus, round);
+
+  /// Each hired member of staff makes a run 25% faster.
+  double cycleSeconds(int i) =>
+      startupProducts[i].cycleSeconds / (1 + 0.25 * items[i].staff);
+
+  double staffCost(int i) =>
+      startupProducts[i].baseCost * 4 * pow(2, items[i].staff);
+
+  int get desks => deskSteps[office];
+
+  /// The founder, the hired staff and the managers.
+  int get headcount {
+    var total = 1;
+    for (final item in items) {
+      total += item.staff + (item.automated ? 1 : 0);
+    }
+    return total;
+  }
+
+  /// Whether one more person fits: a desk is free, and the team is still
+  /// small enough to run without HR or the HR desk exists.
+  bool get canHire => headcount < (hr ? desks : min(teamWithoutHr, desks));
+
+  /// Cost of the next office size, or null at the largest.
+  double? get officeCost =>
+      office < officeCosts.length ? officeCosts[office] : null;
+
+  /// Earnings needed since the last round to raise the next one.
+  double get roundGoal => 250000.0 * pow(100, round);
+
+  bool get canRaise => hr && round < maxRounds && roundEarned >= roundGoal;
 
   /// Income from automated products only; this is what earns while away.
   double get incomePerSecond {
     var total = 0.0;
     for (var i = 0; i < items.length; i++) {
       if (items[i].automated) {
-        total += incomePerCycle(i) / startupProducts[i].cycleSeconds;
+        total += incomePerCycle(i) / cycleSeconds(i);
       }
     }
     return total;
@@ -88,8 +146,45 @@ class GameState {
     final item = items[i];
     final cost = managerCost(i);
     if (item.automated || item.level == 0 || cash < cost) return false;
+    if (!hr || !canHire) return false;
     cash -= cost;
     item.automated = true;
+    return true;
+  }
+
+  bool hireStaff(int i) {
+    final cost = staffCost(i);
+    if (items[i].level == 0 || !canHire || cash < cost) return false;
+    cash -= cost;
+    items[i].staff++;
+    return true;
+  }
+
+  bool setUpHr() {
+    if (hr || cash < hrCost) return false;
+    cash -= hrCost;
+    hr = true;
+    return true;
+  }
+
+  bool expandOffice() {
+    final cost = officeCost;
+    if (cost == null || cash < cost) return false;
+    cash -= cost;
+    office++;
+    return true;
+  }
+
+  /// Takes the funding round: the products start again, and everything
+  /// earns [roundBonus] times more. The office and the HR desk stay.
+  bool raiseRound() {
+    if (!canRaise) return false;
+    round++;
+    cash = 0;
+    roundEarned = 0;
+    for (var i = 0; i < items.length; i++) {
+      items[i] = ProductState(level: i == 0 ? 1 : 0);
+    }
     return true;
   }
 
@@ -102,13 +197,14 @@ class GameState {
   void earn(double amount) {
     cash += amount;
     lifetime += amount;
+    roundEarned += amount;
   }
 
   void tick(double dt) {
     for (var i = 0; i < items.length; i++) {
       final item = items[i];
       if (item.level == 0 || !(item.automated || item.running)) continue;
-      item.progress += dt / startupProducts[i].cycleSeconds;
+      item.progress += dt / cycleSeconds(i);
       if (item.progress < 1) continue;
       if (item.automated) {
         final cycles = item.progress.floor();
@@ -138,11 +234,15 @@ class GameState {
     'playerName': playerName,
     'cash': cash,
     'lifetime': lifetime,
+    'hr': hr,
+    'office': office,
+    'round': round,
+    'roundEarned': roundEarned,
     'lastSeenMs': lastSeenMs,
     'comicsSeen': comicsSeen.toList(),
     'items': [
       for (final item in items)
-        {'level': item.level, 'automated': item.automated},
+        {'level': item.level, 'staff': item.staff, 'automated': item.automated},
     ],
   };
 
@@ -156,12 +256,18 @@ class GameState {
       ..playerName = json['playerName'] as String?
       ..cash = (json['cash'] as num?)?.toDouble() ?? 0
       ..lifetime = (json['lifetime'] as num?)?.toDouble() ?? 0
+      ..hr = json['hr'] as bool? ?? false
+      ..office = json['office'] as int? ?? 0
+      ..round = json['round'] as int? ?? 0
+      ..roundEarned =
+          ((json['roundEarned'] ?? json['lifetime']) as num?)?.toDouble() ?? 0
       ..lastSeenMs = json['lastSeenMs'] as int? ?? 0;
     state.comicsSeen.addAll((json['comicsSeen'] as List? ?? []).cast<String>());
     final saved = json['items'] as List? ?? [];
     for (var i = 0; i < saved.length && i < state.items.length; i++) {
       state.items[i]
         ..level = saved[i]['level'] as int
+        ..staff = saved[i]['staff'] as int? ?? 0
         ..automated = saved[i]['automated'] as bool;
     }
     return state;

@@ -19,6 +19,16 @@ const comics = <String, List<ComicPanel>>{
     ('ch2_2', 'manager', Color(0xFF5C6BC0)),
     ('ch2_3', 'icon_cloud', Color(0xFFEF5350)),
   ],
+  'round1': [
+    ('round1_1', 'icon_hr', Color(0xFFFFB020)),
+    ('round1_2', 'manager', Color(0xFF26A69A)),
+    ('round1_3', 'icon_freelance', Color(0xFF5C6BC0)),
+  ],
+  'round2': [
+    ('round2_1', 'icon_hr', Color(0xFF5C6BC0)),
+    ('round2_2', 'manager', Color(0xFFEF5350)),
+    ('round2_3', 'icon_ai', Color(0xFFAB47BC)),
+  ],
 };
 
 class ComicScreen extends StatefulWidget {

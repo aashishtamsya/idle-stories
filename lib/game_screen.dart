@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'comic.dart';
+import 'contract.dart';
 import 'game.dart';
 import 'onboarding.dart';
 import 'save.dart';
@@ -22,13 +23,14 @@ const _minAwayMs = 60 * 1000;
 
 /// Office layers from back to front, and where each zone sits in the
 /// picture (fractions printed by tool/render_assets.py).
-const zoneOrder = ['cloud', 'saas', 'ai', 'app', 'freelance'];
+const zoneOrder = ['cloud', 'saas', 'ai', 'app', 'freelance', 'hr'];
 const zoneSpot = {
   'cloud': Offset(0.564, 0.229),
   'saas': Offset(0.354, 0.261),
   'ai': Offset(0.754, 0.398),
   'app': Offset(0.476, 0.488),
   'freelance': Offset(0.208, 0.476),
+  'hr': Offset(0.674, 0.564),
 };
 
 /// The zone nearest to a tap at [p] in an office drawn at [size], or null
@@ -66,8 +68,8 @@ class _GameScreenState extends State<GameScreen>
   final _pops = List.filled(startupProducts.length, 0);
   final _lastPay = List.filled(startupProducts.length, 0.0);
 
-  /// The product whose card is open.
-  int _selected = 0;
+  /// The zone whose card is open: a product id, or 'hr'.
+  String _selectedId = 'freelance';
 
   /// Pinch zoom of the office, and the glide used when a zone is tapped.
   final _zoom = TransformationController();
@@ -156,24 +158,95 @@ class _GameScreenState extends State<GameScreen>
     if (s.items[1].level > 0 &&
         !s.comicsSeen.contains('chapter2') &&
         !_showingComic) {
-      _showingComic = true;
-      Navigator.of(context).push(
+      _playComic('chapter2');
+    }
+  }
+
+  void _playComic(String id) {
+    _showingComic = true;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ComicScreen(
+          comicId: id,
+          language: lang,
+          region: s.region,
+          player: s.playerName,
+          onDone: () {
+            s.comicsSeen.add(id);
+            _showingComic = false;
+            _save();
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Registering the company: the player signs the contract with their
+  /// name the first time, then the HR desk is set up.
+  Future<void> _register() async {
+    if (s.playerName == null) {
+      final name = await Navigator.of(context).push<String>(
         MaterialPageRoute(
-          builder: (context) => ComicScreen(
-            comicId: 'chapter2',
-            language: lang,
-            region: s.region,
-            player: s.playerName,
-            onDone: () {
-              s.comicsSeen.add('chapter2');
-              _showingComic = false;
-              _save();
-              Navigator.of(context).pop();
-            },
-          ),
+          builder: (context) => ContractScreen(language: lang, region: s.region),
         ),
       );
+      if (name == null || !mounted) return;
+      s.playerName = name;
     }
+    setState(() => s.setUpHr());
+    _save();
+  }
+
+  Future<void> _raiseRound() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GamePanel(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                tr(lang, 'round_${s.round + 1}'),
+                style: gameText(26, weight: 800),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                tr(lang, 'round_confirm'),
+                textAlign: TextAlign.center,
+                style: gameText(15, weight: 500, color: inkSoft),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  Expanded(
+                    child: GameButton(
+                      color: 'blue',
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(tr(lang, 'cancel')),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: GameButton(
+                      color: 'green',
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('${tr(lang, 'raise')} x$roundBonus'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok != true || !mounted || !s.raiseRound()) return;
+    setState(() {});
+    _save();
+    _playComic(s.round == 1 ? 'round1' : 'round2');
   }
 
   Future<void> _welcomeBack() async {
@@ -436,8 +509,8 @@ class _GameScreenState extends State<GameScreen>
             _zoomTo(id);
             if (id == null) return;
             setState(() {
-              _selected = _index(id);
-              s.startCycle(_selected);
+              _selectedId = id;
+              if (id != 'hr') s.startCycle(_index(id));
             });
           },
           child: Stack(
@@ -445,14 +518,14 @@ class _GameScreenState extends State<GameScreen>
             children: [
               layer('base'),
               for (final id in zoneOrder)
-                if (s.items[_index(id)].level > 0)
+                if (_built(id))
                   Positioned.fill(
                     child: TweenAnimationBuilder<double>(
-                      key: ValueKey('$id${_pops[_index(id)]}'),
+                      key: ValueKey('$id${_popCount(id)}'),
                       tween: Tween(begin: 0, end: 1),
                       duration: const Duration(milliseconds: 400),
                       builder: (context, t, child) => Transform.scale(
-                        scale: _pops[_index(id)] == 0 ? 1 : 1 + 0.04 * sin(pi * t),
+                        scale: _popCount(id) == 0 ? 1 : 1 + 0.04 * sin(pi * t),
                         alignment: Alignment(
                           zoneSpot[id]!.dx * 2 - 1,
                           zoneSpot[id]!.dy * 2 - 1 + 0.3,
@@ -465,7 +538,7 @@ class _GameScreenState extends State<GameScreen>
               layer('front'),
               for (final id in zoneOrder) _marker(id, box.biggest),
               for (final id in zoneOrder)
-                if (_pops[_index(id)] > 0)
+                if (_popCount(id) > 0)
                   Positioned(
                     left: zoneSpot[id]!.dx * box.maxWidth - 60,
                     top: zoneSpot[id]!.dy * box.maxHeight - 26,
@@ -504,12 +577,15 @@ class _GameScreenState extends State<GameScreen>
 
   int _index(String id) => startupProducts.indexWhere((p) => p.id == id);
 
+  /// Whether a zone stands in the room: a launched product, or the HR desk.
+  bool _built(String id) => id == 'hr' ? s.hr : s.items[_index(id)].level > 0;
+  int _popCount(String id) => id == 'hr' ? 0 : _pops[_index(id)];
+
   /// What floats over a zone: a lock and price while it is not launched, and
   /// a pointer while its card is open.
   Widget _marker(String id, Size size) {
-    final i = _index(id);
-    final owned = s.items[i].level > 0;
-    final selected = i == _selected;
+    final owned = _built(id);
+    final selected = id == _selectedId;
     if (owned && !selected) return const SizedBox.shrink();
     final spot = zoneSpot[id]!;
     const amber = Color(0xFFFFB020);
@@ -544,7 +620,7 @@ class _GameScreenState extends State<GameScreen>
                     children: [
                       const Icon(Icons.lock, size: 14, color: ink),
                       Text(
-                        ' ${money(s.upgradeCost(i))}',
+                        ' ${money(id == 'hr' ? hrCost : s.upgradeCost(_index(id)))}',
                         style: gameText(13, weight: 800),
                       ),
                     ],
@@ -568,7 +644,7 @@ class _GameScreenState extends State<GameScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [BoxShadow(color: lip, offset: Offset(0, 4))],
         ),
-        child: _productRow(_selected),
+        child: _selectedId == 'hr' ? _hrRow() : _productRow(_index(_selectedId)),
       ),
     );
   }
@@ -594,8 +670,10 @@ class _GameScreenState extends State<GameScreen>
           color: surface,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
+        child: Column(
           children: [
+            Row(
+              children: [
             Container(
               width: 68,
               height: 68,
@@ -639,59 +717,205 @@ class _GameScreenState extends State<GameScreen>
             const SizedBox(width: 10),
             SizedBox(
               width: 112,
-              child: Column(
+              child: _priceButton(
+                owned ? 'green' : 'amber',
+                tr(lang, owned ? 'upgrade' : 'launch'),
+                s.upgradeCost(i),
+                () => setState(() => s.upgrade(i)),
+              ),
+            ),
+              ],
+            ),
+            if (owned) ...[
+              const SizedBox(height: 6),
+              Row(
                 children: [
-                  GameButton(
-                    color: owned ? 'green' : 'amber',
-                    height: 40,
-                    onPressed: s.cash >= s.upgradeCost(i)
-                        ? () => setState(() => s.upgrade(i))
-                        : null,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          tr(lang, owned ? 'upgrade' : 'launch').toUpperCase(),
-                          style: const TextStyle(fontSize: 13, height: 1.05),
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Coin(13),
-                            Text(
-                              ' ${money(s.upgradeCost(i))}',
-                              style: const TextStyle(fontSize: 14, height: 1.05),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (owned && !item.automated) ...[
-                    const SizedBox(height: 4),
-                    GameButton(
-                      color: 'blue',
-                      height: 32,
-                      onPressed: s.cash >= s.managerCost(i)
-                          ? () => setState(() => s.hireManager(i))
-                          : null,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(art('manager'), height: 24),
-                          Text(
-                            ' ${money(s.managerCost(i))}',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
+                  Expanded(child: _staffButton(i)),
+                  if (!item.automated) ...[
+                    const SizedBox(width: 8),
+                    Expanded(child: _managerButton(i)),
                   ],
                 ],
               ),
-            ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  /// A button with a label over a price; it is off while cash is short.
+  Widget _priceButton(String color, String label, double cost, VoidCallback onPressed) {
+    return GameButton(
+      color: color,
+      height: 40,
+      onPressed: s.cash >= cost ? onPressed : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: const TextStyle(fontSize: 13, height: 1.05),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Coin(13),
+              Text(
+                ' ${money(cost)}',
+                style: const TextStyle(fontSize: 14, height: 1.05),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Why nobody can be hired right now, or null when a desk is free.
+  String? _hireBlock() =>
+      s.canHire ? null : tr(lang, s.hr ? 'office_full' : 'needs_hr');
+
+  /// Hires one more member of staff for a product; shows its staff count.
+  Widget _staffButton(int i) {
+    final block = _hireBlock();
+    return GameButton(
+      color: 'amber',
+      height: 32,
+      onPressed: block == null && s.cash >= s.staffCost(i)
+          ? () => setState(() => s.hireStaff(i))
+          : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.group, size: 18, color: Colors.white),
+          Text(
+            ' ${s.items[i].staff + 1}   ${block ?? '+1  ${money(s.staffCost(i))}'}',
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _managerButton(int i) {
+    final block = s.hr ? _hireBlock() : tr(lang, 'needs_hr');
+    return GameButton(
+      color: 'blue',
+      height: 32,
+      onPressed: block == null && s.cash >= s.managerCost(i)
+          ? () => setState(() => s.hireManager(i))
+          : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(art('manager'), height: 24),
+          Text(
+            ' ${block ?? money(s.managerCost(i))}',
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The HR desk's card: registering the company, then the team, the
+  /// office size and the next funding round.
+  Widget _hrRow() {
+    final icon = Image.asset(art('icon_hr'), width: 64, height: 64);
+    final officeCost = s.officeCost;
+    final moreRounds = s.round < maxRounds;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    s.hr ? icon : ColorFiltered(colorFilter: _greyscale, child: icon),
+                    if (!s.hr) const Icon(Icons.lock, size: 26, color: ink),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr(lang, 'product_hr'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: gameText(17, weight: 800),
+                    ),
+                    if (!s.hr)
+                      Text(
+                        tr(lang, 'hr_desc'),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: gameText(12.5, color: inkSoft),
+                      )
+                    else ...[
+                      Text(
+                        '${tr(lang, 'team')} ${s.headcount} / ${s.desks} ${tr(lang, 'desks')}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: gameText(12.5, color: inkSoft),
+                      ),
+                      if (moreRounds) ...[
+                        const SizedBox(height: 4),
+                        _progressBar(
+                          (s.roundEarned / s.roundGoal).clamp(0, 1).toDouble(),
+                          tr(lang, 'round_${s.round + 1}'),
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 112,
+                child: !s.hr
+                    ? _priceButton('amber', tr(lang, 'register'), hrCost, _register)
+                    : officeCost != null
+                    ? _priceButton(
+                        'green',
+                        tr(lang, 'bigger_office'),
+                        officeCost,
+                        () => setState(() => s.expandOffice()),
+                      )
+                    : null,
+              ),
+            ],
+          ),
+          if (s.hr && moreRounds) ...[
+            const SizedBox(height: 6),
+            GameButton(
+              color: 'blue',
+              height: 32,
+              onPressed: s.canRaise ? _raiseRound : null,
+              child: Text(
+                '${tr(lang, 'raise')}: ${tr(lang, 'round_${s.round + 1}')}  x$roundBonus',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

@@ -54,13 +54,6 @@ class _IdleStoriesAppState extends State<IdleStoriesApp> {
         onDone: (story) => _update(() => state.story = story),
       );
     }
-    if (state.playerName == null) {
-      return NameScreen(
-        language: state.language,
-        story: state.story!,
-        onDone: (name) => _update(() => state.playerName = name),
-      );
-    }
     if (!state.comicsSeen.contains('intro')) {
       return ComicScreen(
         comicId: 'intro',

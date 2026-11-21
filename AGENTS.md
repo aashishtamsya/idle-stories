@@ -43,8 +43,11 @@ Quality notes from the owner so far: plain Material screens "do not look like a 
 - Flutter 3.29.3 with plain widgets (no Flame yet). Use the `flutter` command; the `dart` on the PATH is a different SDK.
 - Run tests with `flutter test --reporter expanded`. The default reporter loses its connection on this machine.
 - There are no native plugins, because CocoaPods is not installed. Saving is a JSON file (`lib/save.dart`); on iOS it lives in the app container's `Documents` folder.
-- Code layout: `lib/game.dart` (economy and state), `lib/strings.dart` (English and Hindi text through `tr(lang, key)`), `lib/ui.dart` (shared game look), `lib/onboarding.dart`, `lib/comic.dart`, `lib/game_screen.dart`, `lib/main.dart` (screen routing).
-- Economy rules: upgrade cost is `baseCost * 1.12^level`, a manager costs `baseCost * 15`, and offline earnings are capped at 8 hours from automated products. Money in India is shown as ₹ with K, L and Cr.
+- Code layout: `lib/game.dart` (economy and state), `lib/strings.dart` (English and Hindi text through `tr(lang, key)`), `lib/ui.dart` (shared game look), `lib/onboarding.dart`, `lib/names.dart` (player-name check), `lib/contract.dart` (company registration and signature), `lib/comic.dart`, `lib/game_screen.dart`, `lib/main.dart` (screen routing).
+- Economy rules: upgrade cost is `baseCost * 1.12^level`, a manager costs `baseCost * 15` (the first one `baseCost * 5`), and offline earnings are capped at 8 hours from automated products. Money in India is shown as ₹ with K, L and Cr.
+- The startup chain follows real life: the founder works alone, hires up to two people, then registers the company (the HR desk, a zone in the room). Managers and a larger team need the HR desk, every person needs a desk, and a bigger office adds desks. Staff cost `baseCost * 4 * 2^staff` and each makes runs 25% faster.
+- A funding round (Seed, Series A to C, IPO) is the prestige step: it restarts the products, keeps the office and HR desk, multiplies income by 3 and is told as a short comic.
+- The player's name is not asked on first launch. It is asked when the player registers the company: they write it on the contract and it is signed in handwriting (the Caveat font, family `Sign`). Names are checked by `nameProblem`.
 - The font is Anek Devanagari (open licence, Latin and Devanagari), a variable font; always set both weight and width, because its default is thin and condensed. Its sister Anek families cover the other Indian scripts.
 - Art is rendered headless with Blender: `blender -b -P tool/render_assets.py -- "$PWD/assets/art"`. Rendered files in `assets/art/` are outputs; change the script, not the images.
 

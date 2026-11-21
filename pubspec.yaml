@@ -64,6 +64,9 @@ flutter:
     - family: Anek
       fonts:
         - asset: assets/fonts/AnekDevanagari.ttf
+    - family: Sign
+      fonts:
+        - asset: assets/fonts/Caveat.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
