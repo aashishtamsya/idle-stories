@@ -30,6 +30,8 @@ Quality notes from the owner so far: plain Material screens "do not look like a 
 
 **Agreed direction (2026-11-21):** low-poly flat 3D, one office seen from above that fills with zones as products launch, with rich detail in every zone. The rules are in `docs/art-guideline.md`.
 
+**Agreed layout (2026-11-21):** the office fills the screen and the player taps a zone to open its card. Every story (Tech Startup, Film, Cricket and later ones) uses this same layout.
+
 ## Monetisation golden rule
 
 - No ad is ever forced. An ad plays only after the player taps a button that offers a reward for it.

@@ -62,7 +62,7 @@ Use warm neutrals for large areas and keep the accents for things the player sho
 - Panels are white with a 20 px corner radius and a solid lip beneath. There are no blurred shadows and no gradients on controls.
 - Buttons are a flat face on a darker lip and sink onto the lip when pressed. Green means spend or continue, amber means unlock, blue means hire, grey means unavailable.
 - Money is always shown with the coin and the ₹ sign. Income is green.
-- The scene sits at the top of the screen and controls sit in a white sheet below it.
+- The office fills the screen between the top bar and one card. The player taps a zone to open its card; there is no product list. A zone that is not launched shows a lock and its price in the room, and the open zone shows an amber pointer. Every story uses this layout.
 
 ## 9. Do and do not
 
