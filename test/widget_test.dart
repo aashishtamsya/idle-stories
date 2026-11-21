@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:idle_stories/strings.dart';
 import 'package:idle_stories/game.dart';
 import 'package:idle_stories/game_screen.dart';
+import 'package:idle_stories/names.dart';
 import 'dart:ui';
 
 void main() {
@@ -29,8 +30,10 @@ void main() {
     });
 
     test('an automated product pays for every completed run', () {
-      final s = GameState()..cash = 50;
+      final s = GameState()..cash = 90;
       expect(s.managerCost(1), 1500);
+      expect(s.hireManager(0), isFalse, reason: 'no HR desk yet');
+      expect(s.setUpHr(), isTrue);
       expect(s.hireManager(0), isTrue);
       expect(s.cash, 0);
       s.tick(3.5);
@@ -49,9 +52,49 @@ void main() {
       expect(s.offlineEarnings(dayMs), 0);
       s
         ..cash = 150
+        ..setUpHr()
         ..hireManager(0);
       expect(s.offlineEarnings(dayMs), maxOfflineSeconds * 1.0);
       expect(s.offlineEarnings(1 + 10 * 1000), 10);
+    });
+
+    test('staff speed up a product until the desks run out', () {
+      final s = GameState()..cash = 1e9;
+      expect(s.staffCost(0), 40);
+      expect(s.hireStaff(0), isTrue);
+      expect(s.staffCost(0), 80);
+      expect(s.cycleSeconds(0), closeTo(0.8, 1e-9));
+      expect(s.hireStaff(0), isTrue);
+      expect(s.hireStaff(0), isFalse, reason: 'three people without HR');
+      s.setUpHr();
+      expect(s.hireStaff(0), isTrue);
+      expect(s.headcount, s.desks);
+      expect(s.hireStaff(0), isFalse, reason: 'the office is full');
+      expect(s.expandOffice(), isTrue);
+      expect(s.desks, 8);
+      expect(s.hireStaff(0), isTrue);
+    });
+
+    test('a funding round restarts the products and triples income', () {
+      final s = GameState()..cash = 1e9;
+      s
+        ..setUpHr()
+        ..expandOffice()
+        ..upgrade(1)
+        ..hireStaff(0)
+        ..hireManager(0);
+      expect(s.raiseRound(), isFalse, reason: 'goal not reached');
+      s.earn(s.roundGoal);
+      expect(s.raiseRound(), isTrue);
+      expect(s.round, 1);
+      expect(s.cash, 0);
+      expect(s.items[1].level, 0);
+      expect(s.items[0].automated, isFalse);
+      expect(s.headcount, 1);
+      expect(s.hr, isTrue);
+      expect(s.office, 1);
+      expect(s.incomePerCycle(0), 3);
+      expect(s.roundGoal, 25000000);
     });
 
     test('a fresh game has no offline earnings', () {
@@ -66,11 +109,15 @@ void main() {
       ..setupRegion = 'IN'
       ..setupLanguageStep = true
       ..story = 'startup'
+      ..playerName = 'Asha'
       ..cash = 500
       ..lastSeenMs = 42;
     s.comicsSeen.add('intro');
     s.upgrade(1);
+    s.setUpHr();
+    s.hireStaff(1);
     s.hireManager(0);
+    s.expandOffice();
     final loaded = GameState.fromJson(s.toJson());
     expect(loaded.toJson(), s.toJson());
   });
@@ -82,9 +129,11 @@ void main() {
     expect(trStory('pt', 'BR', 'intro_2'), contains('Rafael'));
     expect(trStory('hi', 'IN', 'intro_2'), contains('कबीर'));
     expect(trStory('en', null, 'ch2_2'), startsWith('Kabir'));
+    expect(trStory('en', 'IN', 'round1_1', player: 'Asha'), contains('Asha'));
     for (final lang in ['en', 'hi', 'pt', 'fr']) {
       for (final region in ['IN', 'US', 'BR', 'FR', 'OTHER']) {
-        for (final key in ['intro_1', 'intro_2', 'ch2_2', 'story_startup_desc']) {
+        for (final key in ['intro_1', 'intro_2', 'ch2_2', 'round2_2', 'contract_body',
+            'story_startup_desc']) {
           expect(trStory(lang, region, key), isNot(contains('{')));
         }
       }
@@ -98,6 +147,21 @@ void main() {
       expect(zoneAt(Offset(spot.dx * 400, spot.dy * 300), size), id);
     }
     expect(zoneAt(const Offset(2, 298), size), isNull);
+  });
+
+  test('player names are checked', () {
+    for (final ok in ['Asha', 'Harshit', 'Shital', 'Hassan', 'Dikshit', 'Nigam',
+        'आशा', 'José', "D'Souza", 'Anne-Marie']) {
+      expect(nameProblem(ok), isNull, reason: ok);
+    }
+    expect(nameProblem(' a '), 'name_short');
+    expect(nameProblem('a' * 17), 'name_long');
+    expect(nameProblem('Asha99'), 'name_chars');
+    expect(nameProblem('Asha!'), 'name_chars');
+    for (final rude in ['Fuck', 'f u c k', 'Fuuuck', 'shit', 'Asss',
+        'Chutiya', 'चूतिया', 'Big Dick', 'Putain']) {
+      expect(nameProblem(rude), 'name_rude', reason: rude);
+    }
   });
 
   group('money formatting', () {

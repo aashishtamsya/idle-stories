@@ -59,6 +59,7 @@ class _IdleStoriesAppState extends State<IdleStoriesApp> {
         comicId: 'intro',
         language: state.language,
         region: state.region,
+        player: state.playerName,
         onDone: () => _update(() => state.comicsSeen.add('intro')),
       );
     }

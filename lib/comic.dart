@@ -19,18 +19,30 @@ const comics = <String, List<ComicPanel>>{
     ('ch2_2', 'manager', Color(0xFF5C6BC0)),
     ('ch2_3', 'icon_cloud', Color(0xFFEF5350)),
   ],
+  'round1': [
+    ('round1_1', 'icon_hr', Color(0xFFFFB020)),
+    ('round1_2', 'manager', Color(0xFF26A69A)),
+    ('round1_3', 'icon_freelance', Color(0xFF5C6BC0)),
+  ],
+  'round2': [
+    ('round2_1', 'icon_hr', Color(0xFF5C6BC0)),
+    ('round2_2', 'manager', Color(0xFFEF5350)),
+    ('round2_3', 'icon_ai', Color(0xFFAB47BC)),
+  ],
 };
 
 class ComicScreen extends StatefulWidget {
   final String comicId;
   final String language;
   final String? region;
+  final String? player;
   final VoidCallback onDone;
   const ComicScreen({
     super.key,
     required this.comicId,
     required this.language,
     required this.region,
+    required this.player,
     required this.onDone,
   });
 
@@ -112,7 +124,12 @@ class _ComicScreenState extends State<ComicScreen> {
                                 border: Border.all(color: Colors.black, width: 3),
                               ),
                               child: Text(
-                                trStory(widget.language, widget.region, captionKey),
+                                trStory(
+                                  widget.language,
+                                  widget.region,
+                                  captionKey,
+                                  player: widget.player,
+                                ),
                                 style: gameText(18, weight: 600, color: Colors.black),
                               ),
                             ),

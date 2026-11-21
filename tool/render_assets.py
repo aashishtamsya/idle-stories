@@ -492,6 +492,33 @@ B(1.3, 3.0, 0, 0.14, 0.05, 1.0, "#E8C98A", rz=12)  # cricket bat
 B(1.34, 3.0, 1.0, 0.06, 0.05, 0.3, NAVY, rz=12)
 
 # =====================================================================
+# HR DESK: a recruiter, a filing cabinet and the hiring board.
+# =====================================================================
+LAYER = "hr"
+B(7.5, 3.7, 0.02, 2.4, 2.6, 0.03, MARIGOLD)
+B(7.65, 3.85, 0.05, 2.1, 2.3, 0.01, "#FFD08A")
+place(deskset, 9.2, 4.7, deg=90, s=1.1, shirt=INDIGO, screen="#1F3A5F", skin=SKIN[0],
+      bun=True, seat=PINK, mug=WHITE)
+# Hiring board: a row of staff cards, one slot still open.
+for hx in (8.75, 9.65):
+    B(hx, 5.9, 0, 0.08, 0.08, 0.9, STEEL)
+B(8.6, 5.87, 0.9, 1.26, 0.06, 0.9, NAVY)
+B(8.66, 5.85, 0.96, 1.14, 0.02, 0.78, WHITE)
+B(8.66, 5.84, 1.58, 1.14, 0.02, 0.16, INDIGO)
+for k, c in enumerate((SAFFRON, TEAL, PINK, GREY)):
+    cx = 8.71 + k * 0.275
+    B(cx, 5.84, 1.02, 0.22, 0.02, 0.5, c if k < 3 else "#F1F5F9")
+    I(cx + 0.11, 5.82, 1.36, 0.07, WHITE if k < 3 else GREY)
+    B(cx + 0.04, 5.83, 1.08, 0.14, 0.02, 0.16, WHITE if k < 3 else GREY)
+# Filing cabinet with a plant on top.
+B(9.25, 3.75, 0, 0.6, 0.6, 1.05, STEEL)
+for k in range(3):
+    B(9.2, 3.8, 0.1 + k * 0.32, 0.06, 0.5, 0.24, GREY)
+    B(9.17, 3.98, 0.2 + k * 0.32, 0.04, 0.14, 0.04, NAVY)
+I(9.55, 4.05, 1.25, 0.22, LEAF)
+I(9.45, 4.15, 1.42, 0.14, LEAF_D)
+
+# =====================================================================
 # FRONT: the chai corner and lounge, always drawn on top.
 # =====================================================================
 LAYER = "front"
@@ -529,7 +556,7 @@ C(8.42, 2.62, 0.72, 0.05, 0.1, "#B5651D")
 # Rendering
 # =====================================================================
 meshes = [o for o in bpy.data.objects if o.type == "MESH"]
-ZONES = ["cloud", "saas", "ai", "app", "freelance"]
+ZONES = ["cloud", "saas", "ai", "app", "freelance", "hr"]
 ROOM_TARGET = Vector((5, 5, 1.35))
 ROOM_SCALE = 15.0
 ROOM_RES = (1560, 1170)
