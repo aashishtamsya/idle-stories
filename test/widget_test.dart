@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:idle_stories/strings.dart';
 import 'package:idle_stories/game.dart';
+import 'package:idle_stories/game_screen.dart';
+import 'dart:ui';
 
 void main() {
   group('economy', () {
@@ -87,6 +89,15 @@ void main() {
         }
       }
     }
+  });
+
+  test('a tap in the office finds the nearest zone', () {
+    const size = Size(400, 300);
+    for (final id in zoneOrder) {
+      final spot = zoneSpot[id]!;
+      expect(zoneAt(Offset(spot.dx * 400, spot.dy * 300), size), id);
+    }
+    expect(zoneAt(const Offset(2, 298), size), isNull);
   });
 
   group('money formatting', () {

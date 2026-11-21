@@ -20,6 +20,33 @@ const _greyscale = ColorFilter.matrix([
 /// Minimum time away before the "welcome back" earnings dialog is shown.
 const _minAwayMs = 60 * 1000;
 
+/// Office layers from back to front, and where each zone sits in the
+/// picture (fractions printed by tool/render_assets.py).
+const zoneOrder = ['cloud', 'saas', 'ai', 'app', 'freelance'];
+const zoneSpot = {
+  'cloud': Offset(0.564, 0.229),
+  'saas': Offset(0.354, 0.261),
+  'ai': Offset(0.754, 0.398),
+  'app': Offset(0.476, 0.488),
+  'freelance': Offset(0.208, 0.476),
+};
+
+/// The zone nearest to a tap at [p] in an office drawn at [size], or null
+/// when the tap is not close to any zone.
+String? zoneAt(Offset p, Size size) {
+  String? best;
+  var bestDistance = size.width * 0.16;
+  for (final id in zoneOrder) {
+    final spot = zoneSpot[id]!;
+    final d = (p - Offset(spot.dx * size.width, spot.dy * size.height)).distance;
+    if (d < bestDistance) {
+      bestDistance = d;
+      best = id;
+    }
+  }
+  return best;
+}
+
 class GameScreen extends StatefulWidget {
   final GameState state;
   final VoidCallback onReset;
@@ -37,6 +64,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   /// Number of payouts seen per product; a change replays the pop animation.
   final _pops = List.filled(startupProducts.length, 0);
   final _lastPay = List.filled(startupProducts.length, 0.0);
+
+  /// The product whose card is open.
+  int _selected = 0;
 
   GameState get s => widget.state;
   String get lang => s.language;
@@ -253,17 +283,6 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     widget.onReset();
   }
 
-  /// Office layers from back to front, and where each zone sits in the
-  /// picture (fractions printed by tool/render_assets.py).
-  static const _zoneOrder = ['cloud', 'saas', 'ai', 'app', 'freelance'];
-  static const _zoneSpot = {
-    'cloud': Offset(0.564, 0.229),
-    'saas': Offset(0.354, 0.261),
-    'ai': Offset(0.754, 0.398),
-    'app': Offset(0.476, 0.488),
-    'freelance': Offset(0.208, 0.476),
-  };
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -273,8 +292,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           child: Column(
             children: [
               _hud(),
-              _office(),
-              Expanded(child: _sheet()),
+              Expanded(child: Center(child: _office())),
+              _card(),
             ],
           ),
         ),
@@ -320,7 +339,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          Container(
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [BoxShadow(color: lip, offset: Offset(0, 4))],
+            ),
+            child: Text(
+              '+${money(s.incomePerSecond)}${tr(lang, 'per_second')}',
+              style: gameText(15, weight: 800, color: moneyGreen),
+            ),
+          ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _openSettings,
             child: Container(
@@ -340,25 +373,29 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   /// The office: one picture built from stacked layers. A zone appears when
-  /// its product is launched and bounces each time it pays out.
+  /// its product is launched and bounces each time it pays out. Tapping a
+  /// zone opens its card and puts its team to work.
   Widget _office() {
     Widget layer(String name) =>
         Positioned.fill(child: Image.asset(art('office_$name')));
-    return GestureDetector(
-      // Tapping the office puts every idle team to work.
-      onTap: () => setState(() {
-        for (var i = 0; i < s.items.length; i++) {
-          s.startCycle(i);
-        }
-      }),
-      child: AspectRatio(
-        aspectRatio: 1560 / 1170,
-        child: LayoutBuilder(
-          builder: (context, box) => Stack(
+    return AspectRatio(
+      aspectRatio: 1560 / 1170,
+      child: LayoutBuilder(
+        builder: (context, box) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (tap) {
+            final id = zoneAt(tap.localPosition, box.biggest);
+            if (id == null) return;
+            setState(() {
+              _selected = _index(id);
+              s.startCycle(_selected);
+            });
+          },
+          child: Stack(
             clipBehavior: Clip.none,
             children: [
               layer('base'),
-              for (final id in _zoneOrder)
+              for (final id in zoneOrder)
                 if (s.items[_index(id)].level > 0)
                   Positioned.fill(
                     child: TweenAnimationBuilder<double>(
@@ -368,8 +405,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       builder: (context, t, child) => Transform.scale(
                         scale: _pops[_index(id)] == 0 ? 1 : 1 + 0.04 * sin(pi * t),
                         alignment: Alignment(
-                          _zoneSpot[id]!.dx * 2 - 1,
-                          _zoneSpot[id]!.dy * 2 - 1 + 0.3,
+                          zoneSpot[id]!.dx * 2 - 1,
+                          zoneSpot[id]!.dy * 2 - 1 + 0.3,
                         ),
                         child: child,
                       ),
@@ -377,31 +414,34 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     ),
                   ),
               layer('front'),
-              for (final id in _zoneOrder)
+              for (final id in zoneOrder) _marker(id, box.biggest),
+              for (final id in zoneOrder)
                 if (_pops[_index(id)] > 0)
                   Positioned(
-                    left: _zoneSpot[id]!.dx * box.maxWidth - 60,
-                    top: _zoneSpot[id]!.dy * box.maxHeight - 26,
+                    left: zoneSpot[id]!.dx * box.maxWidth - 60,
+                    top: zoneSpot[id]!.dy * box.maxHeight - 26,
                     width: 120,
-                    child: TweenAnimationBuilder<double>(
-                      key: ValueKey('pop$id${_pops[_index(id)]}'),
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 900),
-                      builder: (context, t, child) => Opacity(
-                        opacity: 1 - t * t,
-                        child: Transform.translate(
-                          offset: Offset(0, -30 * t),
-                          child: child,
+                    child: IgnorePointer(
+                      child: TweenAnimationBuilder<double>(
+                        key: ValueKey('pop$id${_pops[_index(id)]}'),
+                        tween: Tween(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 900),
+                        builder: (context, t, child) => Opacity(
+                          opacity: 1 - t * t,
+                          child: Transform.translate(
+                            offset: Offset(0, -30 * t),
+                            child: child,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        '+${money(_lastPay[_index(id)])}',
-                        textAlign: TextAlign.center,
-                        style: gameText(17, weight: 800, color: Colors.white).copyWith(
-                          shadows: const [
-                            Shadow(color: Color(0xFF1F8F4E), offset: Offset(0, 2)),
-                            Shadow(color: Color(0xFF1F8F4E), blurRadius: 3),
-                          ],
+                        child: Text(
+                          '+${money(_lastPay[_index(id)])}',
+                          textAlign: TextAlign.center,
+                          style: gameText(17, weight: 800, color: Colors.white).copyWith(
+                            shadows: const [
+                              Shadow(color: Color(0xFF1F8F4E), offset: Offset(0, 2)),
+                              Shadow(color: Color(0xFF1F8F4E), blurRadius: 3),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -415,39 +455,71 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   int _index(String id) => startupProducts.indexWhere((p) => p.id == id);
 
-  Widget _sheet() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 2),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    tr(lang, 'story_startup').toUpperCase(),
-                    style: gameText(17, weight: 800).copyWith(letterSpacing: 0.6),
+  /// What floats over a zone: a lock and price while it is not launched, and
+  /// a pointer while its card is open.
+  Widget _marker(String id, Size size) {
+    final i = _index(id);
+    final owned = s.items[i].level > 0;
+    final selected = i == _selected;
+    if (owned && !selected) return const SizedBox.shrink();
+    final spot = zoneSpot[id]!;
+    const amber = Color(0xFFFFB020);
+    return Positioned(
+      left: spot.dx * size.width - 70,
+      top: spot.dy * size.height - (owned ? 62 : 16),
+      width: 140,
+      child: IgnorePointer(
+        child: Center(
+          child: owned
+              ? Transform.rotate(
+                  angle: pi / 4,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: amber,
+                      border: Border.all(color: Colors.white, width: 3),
+                    ),
+                  ),
+                )
+              : Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: selected ? Border.all(color: amber, width: 3) : null,
+                    boxShadow: const [BoxShadow(color: lip, offset: Offset(0, 3))],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock, size: 14, color: ink),
+                      Text(
+                        ' ${money(s.upgradeCost(i))}',
+                        style: gameText(13, weight: 800),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  '+${money(s.incomePerSecond)}${tr(lang, 'per_second')}',
-                  style: gameText(17, weight: 800, color: moneyGreen),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 28),
-              itemCount: s.items.length,
-              itemBuilder: (context, i) => _productRow(i),
-            ),
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  /// The card of the selected zone, at the bottom of the screen.
+  Widget _card() {
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: const [BoxShadow(color: lip, offset: Offset(0, 4))],
+        ),
+        child: _productRow(_selected),
       ),
     );
   }
